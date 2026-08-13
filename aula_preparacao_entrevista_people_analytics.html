@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masterclass & Guia de Preparação — Entrevista People Analytics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0F172A;
+            --card-bg: #1E293B;
+            --card-border: #334155;
+            --primary: #6366F1;
+            --primary-light: #818CF8;
+            --accent: #EC4899;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #06B6D4;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --text-subtle: #64748B;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding-bottom: 60px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1E1B4B 0%, #0F172A 100%);
+            border-bottom: 1px solid var(--card-border);
+            padding: 40px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #A5B4FC 0%, #6366F1 50%, #EC4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .badge-bar {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 18px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background-color: rgba(99, 102, 241, 0.15);
+            border: 1px solid var(--primary);
+            color: var(--primary-light);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .tab-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            border-color: var(--primary);
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Section Cards */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 26px;
+            margin-bottom: 24px;
+        }
+
+        .card h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            color: var(--text-main);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h3 {
+            font-size: 1.15rem;
+            color: var(--primary-light);
+            margin: 20px 0 10px 0;
+        }
+
+        .card p {
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            font-size: 0.98rem;
+        }
+
+        .highlight-box {
+            background: rgba(99, 102, 241, 0.1);
+            border-left: 4px solid var(--primary);
+            padding: 16px;
+            border-radius: 6px;
+            margin: 16px 0;
+            color: #E2E8F0;
+        }
+
+        .tip-box {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid var(--success);
+            padding: 16px;
+            border-radius: 6px;
+            margin: 16px 0;
+            color: #E2E8F0;
+        }
+
+        .warning-box {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 16px;
+            border-radius: 6px;
+            margin: 16px 0;
+            color: #E2E8F0;
+        }
+
+        .qa-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 18px;
+            margin-bottom: 16px;
+        }
+
+        .qa-question {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--warning);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .qa-answer {
+            color: #CBD5E1;
+            font-size: 0.95rem;
+        }
+
+        .qa-answer strong {
+            color: var(--success);
+        }
+
+        /* Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .term-badge {
+            background: #0F172A;
+            border: 1px solid var(--card-border);
+            padding: 14px;
+            border-radius: 8px;
+        }
+
+        .term-title {
+            font-weight: 700;
+            color: var(--info);
+            font-size: 1rem;
+            margin-bottom: 6px;
+        }
+
+        .term-desc {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+
+        ul, ol {
+            padding-left: 20px;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        strong {
+            color: var(--text-main);
+        }
+
+        code {
+            background-color: #0F172A;
+            color: var(--accent);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .btn-print {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 30px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            z-index: 100;
+        }
+
+        .btn-print:hover {
+            background: var(--primary-light);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Masterclass: Preparação para Entrevista de People Analytics</h1>
+        <p>Guia Prático, Conceitos Chave, Storytelling de Projetos e Perguntas Frequentes do Mercado</p>
+        <div class="badge-bar">
+            <span class="badge">🎯 Foco: Vaga Analista de People Analytics</span>
+            <span class="badge">🏢 Contexto: Tupy & Setor Industrial</span>
+            <span class="badge">📊 Estudo de Caso: 4.410 Colaboradores + Ponto</span>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="openTab(event, 'storytelling')">🚀 1. Storytelling (Como Apresentar)</button>
+            <button class="tab-btn" onclick="openTab(event, 'glossario')">📚 2. Dicionário & Termos Técnicos</button>
+            <button class="tab-btn" onclick="openTab(event, 'metodologia')">🔬 3. As 4 Etapas Analíticas</button>
+            <button class="tab-btn" onclick="openTab(event, 'perguntas')">❓ 4. Perguntas da Entrevista & Respostas</button>
+            <button class="tab-btn" onclick="openTab(event, 'tupy')">🏭 5. Conexão com o Negócio Tupy</button>
+        </div>
+
+        <!-- TAB 1: STORYTELLING -->
+        <div id="storytelling" class="tab-content active">
+            <div class="card">
+                <h2>🚀 Como Apresentar o Seu Projeto (O Elevator Pitch de 2 Minutos)</h2>
+                <p>Se o recrutador ou gestor perguntar: <em>"Fale sobre um projeto de People Analytics recente ou relevante que você desenvolveu"</em>, use a estrutura <strong>STAR (Situação, Tarefa, Ação, Resultado)</strong>:</p>
+
+                <div class="highlight-box">
+                    <strong>🗣️ ROTEIRO PARA FALAR NA ENTREVISTA:</strong><br><br>
+                    <em>"Recentemente desenvolvi um projeto end-to-end de inteligência de dados de pessoal focado no setor industrial, analisando uma base de <strong>4.410 colaboradores</strong> com dados demográficos, pesquisas de clima, avaliações de desempenho e mais de <strong>1,1 milhão de registros de ponto eletrônico</strong>.<br><br>
+                    O desafio central era entender as causas de uma <strong>taxa de turnover de 16,1%</strong>. O grande diferencial da minha análise foi cruzar dados declarados (pesquisa de clima) com <strong>dados observados de jornada</strong>. Descobri que colaboradores prestes a se desligar apresentavam uma tendência declinante na jornada mensal de trabalho — um sinal claro de desengajamento prévio observável no ponto.<br><br>
+                    Para dar suporte à tomada de decisão da diretoria, construí modelos de machine learning (Gradient Boosting com explicação via SHAP values) para calcular o risco preditivo de saída dos funcionários ativos, e desenvolvi um <strong>Dashboard Executivo em Streamlit</strong> com filtros dinâmicos e relatórios estratégicos. Demonstrei que ações de retenção focadas no grupo de alto risco trazem um <strong>ROI estimado de 2x a 3x o valor investido</strong>."</em>
+                </div>
+
+                <h3>📌 Estrutura do Projeto para Lembrar na Horta H:</h3>
+                <div class="grid-2">
+                    <div class="term-badge">
+                        <div class="term-title">1. Notebook 00 — ETL & Ponto</div>
+                        <div class="term-desc">Merge de 5 fontes de dados (RH + Clima + Performance + Ponto). Tratamento de ausências e cálculo da <code>EngagementTrend</code> (variação da jornada ao longo dos meses).</div>
+                    </div>
+                    <div class="term-badge">
+                        <div class="term-title">2. Notebook 01 — Profiling & Equidade</div>
+                        <div class="term-desc">Mapeamento da força de trabalho, pirâmide etária, hierarquia de cargos (Níveis 1 a 5) e análise de gap salarial de gênero controlado por nível.</div>
+                    </div>
+                    <div class="term-badge">
+                        <div class="term-title">3. Notebook 02 — Turnover & Custo</div>
+                        <div class="term-desc">Segmentação por departamento e viagens. Cálculo do custo de turnover baseado em multiplicadores de salário do setor industrial (50% a 200%).</div>
+                    </div>
+                    <div class="term-badge">
+                        <div class="term-title">4. Notebook 03 — Jornada & Absenteísmo</div>
+                        <div class="term-desc">Padrões diários de entrada/saída, curva de absenteísmo, dias longos (>9h) e matriz de risco entre jornada física e satisfação.</div>
+                    </div>
+                    <div class="term-badge" style="grid-column: span 2;">
+                        <div class="term-title">5. Notebook 04 & Dashboard Streamlit</div>
+                        <div class="term-desc">Modelo de Machine Learning para calcular a probabilidade de saída dos colaboradores ativos. Dashboard interativo em Streamlit com 4 telas em PT-BR para acompanhamento da diretoria.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: GLOSSÁRIO -->
+        <div id="glossario" class="tab-content">
+            <div class="card">
+                <h2>📚 Dicionário de Termos e Indicadores Essenciais de People Analytics</h2>
+                <p>Domine estes termos para demonstrar fluência técnica e comercial durante a entrevista:</p>
+
+                <div class="grid-3">
+                    <div class="term-badge">
+                        <div class="term-title">Headcount</div>
+                        <div class="term-desc">Número total de colaboradores ativos em um determinado momento na empresa. Base para planejamento orçamentário.</div>
+                    </div>
+                    <div class="term-badge">
+                        <div class="term-title">Turnover (Rotatividade)</div>
+                        <div class="term-desc">Percentual de saídas em relação ao headcount médio. Dividido em <strong>Voluntário</strong> (pedido do colaborador) e <strong>Involuntário</strong> (demissão pela empresa).</div>
+                    </div>
+                    <div class="term-badge">
+                        <div class="term-title">Absenteísmo (Absenteeism)</div>
+                        <div class="term-desc">Taxa de faltas, atrasos e ausências (justificadas ou não). Fórmula: <code>(Horas Ausentes / Horas Esperadas) * 100</code>.</div>
+                    </div>
+                    <div class="term-badge">
+                        <div class="term-title">Cost of Turnover</div>
+                        <div class="term-desc">Custo de substituir um funcionário. Inclui recrutamento, integração, curva de aprendizagem e perda de produtividade (~50% a 200% do salário anual).</div>
+                    </div>
+                    <div class="term-badge">
+                        <div class="term-title">Tenure (Tempo de Casa)</div>
+                        <div class="term-desc">Tempo decorrido desde a admissão do colaborador. Crucial para analisar a retenção nos primeiros 90 dias vs. profissionais seniores.</div>
+                    </div>
+                    <div class="term-badge">
+                        <div class="term-title">Span of Control</div>
+                        <div class="term-desc">Amplitude de controle: média de liderados diretos por gestor. Usado em Design Organizacional para avaliar sobrecarga de liderança.</div>
+                    </div>
+                    <div class="term-badge">
+                        <div class="term-title">eNPS (Employee Net Promoter)</div>
+                        <div class="term-desc">Métrica de satisfação: <em>"De 0 a 10, o quanto você recomendaria nossa empresa como um bom lugar para trabalhar?"</em> (% Promotores - % Detratores).</div>
+                    </div>
+                    <div class="term-badge">
+                        <div class="term-title">Flight Risk Score</div>
+                        <div class="term-desc">Pontuação preditiva de probabilidade (0 a 100%) calculada por algoritmo de IA indicando o risco de um funcionário pedir demissão.</div>
+                    </div>
+                    <div class="term-badge">
+                        <div class="term-title">SHAP Values</div>
+                        <div class="term-desc">Método de explicabilidade de Inteligência Artificial que mostra exatamente quanto cada variável contribuiu para a nota de risco individual.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: METODOLOGIA -->
+        <div id="metodologia" class="tab-content">
+            <div class="card">
+                <h2>🔬 As 4 Etapas da Maturidade Analítica em People Analytics</h2>
+                <p>Na entrevista, sempre posicione suas análises dentro destas 4 etapas de maturidade:</p>
+
+                <div class="grid-2">
+                    <div class="card" style="margin-bottom:0; background:#0F172A;">
+                        <h3 style="color:var(--info);">1. Análise Descritiva</h3>
+                        <p><strong>Pergunta:</strong> <em>O que aconteceu?</em></p>
+                        <p>Relatórios, dashboards operacionais e KPIs históricos (Headcount atual, taxa de turnover anual, distribuição por planta e por gênero).</p>
+                    </div>
+                    <div class="card" style="margin-bottom:0; background:#0F172A;">
+                        <h3 style="color:var(--warning);">2. Análise Diagnóstica</h3>
+                        <p><strong>Pergunta:</strong> <em>Por que aconteceu?</em></p>
+                        <p>Cruzamento de dados para identificar causa raiz (Ex: Descobrimos que a saída é maior entre quem viaja muito ou possui 5+ anos sem promoção).</p>
+                    </div>
+                    <div class="card" style="margin-bottom:0; background:#0F172A;">
+                        <h3 style="color:var(--primary-light);">3. Análise Preditiva</h3>
+                        <p><strong>Pergunta:</strong> <em>O que vai acontecer?</em></p>
+                        <p>Uso de Machine Learning (Gradient Boosting) para estimar quais funcionários ativos têm maior probabilidade de pedir demissão nos próximos meses.</p>
+                    </div>
+                    <div class="card" style="margin-bottom:0; background:#0F172A;">
+                        <h3 style="color:var(--success);">4. Análise Prescritiva</h3>
+                        <p><strong>Pergunta:</strong> <em>O que devemos fazer?</em></p>
+                        <p>Recomendações estratégicas e planos de retenção individualizados com cálculo de ROI para a liderança tomar decisão com impacto financeiro.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: PERGUNTAS DE ENTREVISTA -->
+        <div id="perguntas" class="tab-content">
+            <div class="card">
+                <h2>❓ Perguntas Frequentes em Entrevistas de People Analytics & Respostas Campeãs</h2>
+                
+                <div class="qa-card">
+                    <div class="qa-question">1. "Você tem experiência prática em People Analytics?"</div>
+                    <div class="qa-answer">
+                        <strong>Como responder:</strong> "Sim! Trabalho com todo o ciclo de People Analytics: extração de fontes diversas (sistemas de RH, pesquisas de clima, registros de ponto), limpeza e unificação de dados em Python/Pandas, construção de dashboards interativos em ferramentas de BI/Streamlit e modelagem preditiva para risco de turnover. Tenho foco total em transformar dados brutos em decisões de negócio que economizam recursos e retêm talentos."
+                    </div>
+                </div>
+
+                <div class="qa-card">
+                    <div class="qa-question">2. "Como você lida com dados incompletos ou inconsistentes na folha / sistemas de RH?"</div>
+                    <div class="qa-answer">
+                        <strong>Como responder:</strong> "Em dados de pessoas, missing values são comuns. Minha abordagem é técnica e cuidadosa: primeiro verifico a integridade referencial dos IDs dos colaboradores. Para variáveis numéricas com baixos índices de ausência (como tempo de carreira), utilizo imputação por mediana para evitar distorções por outliers. Em categóricas, utilizo a moda ou categorizo como 'Não Informado'. Acima de tudo, nunca elimino registros sem antes avaliar se a ausência do dado em si não é um viés sistêmico."
+                    </div>
+                </div>
+
+                <div class="qa-card">
+                    <div class="qa-question">3. "Qual é o diferencial de analisar dados de ponto eletrônico além das pesquisas de clima?"</div>
+                    <div class="qa-answer">
+                        <strong>Como responder:</strong> "Pesquisas de clima medem o comportamento <em>declarado</em>, que pode sofrer viés de resposta ou baixo engajamento no preenchimento. Já os registros de ponto medem o comportamento <em>real e observado</em>. No meu projeto, calculei a tendência da jornada ao longo dos 12 meses do ano e comprovei que colaboradores prestes a pedir demissão apresentam uma queda gradual no cumprimento de horas diárias — o chamado desengajamento silencioso."
+                    </div>
+                </div>
+
+                <div class="qa-card">
+                    <div class="qa-question">4. "Como você apresenta dados analíticos complexos para Diretores e VPs?"</div>
+                    <div class="qa-answer">
+                        <strong>Como responder:</strong> "Líderes executivos não querem jargões técnicos de estatística ou código; eles buscam impacto no negócio. Eu organizo minhas apresentações em 3 camadas: 1) KPIs de impacto executivo (custo financeiro e taxa macro), 2) Visualização limpa com destaques de causa raiz, e 3) Recomendações prescritivas com cálculo de ROI. Sempre mostro quanto a inação custa vs. o retorno de investir na solução."
+                    </div>
+                </div>
+
+                <div class="qa-card">
+                    <div class="qa-question">5. "Power BI vs. Python/Streamlit: Qual ferramenta você prefere e por quê?"</div>
+                    <div class="qa-answer">
+                        <strong>Como responder:</strong> "Ambas são complementares e dependem da necessidade. O Power BI é excelente para governança corporativa, distribuição em escala pelo ecossistema Microsoft e acompanhamento diário de dashboards da gestão. Já o Python/Streamlit traz flexibilidade para modelagem preditiva avançada (ML, SHAP values), manipulação pesada de dados como milhões de eventos de ponto e prototipagem rápida de aplicações de dados customizadas."
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: CONEXÃO TUPY -->
+        <div id="tupy" class="tab-content">
+            <div class="card">
+                <h2>🏭 Conexão com o Negócio da Tupy & Setor Industrial</h2>
+                <p>Demonstre que você entende a realidade da empresa onde fará a entrevista em Joinville/SC:</p>
+
+                <div class="tip-box">
+                    <strong>🏢 PERFIL DA TUPY & MWM:</strong><br>
+                    • Multinacional brasileira com mais de 80 anos, sediada em Joinville (SC), com ~18.000 colaboradores e operações no Brasil, México e Portugal.<br>
+                    • Referência global em componentes estruturais de ferro fundido (blocos e cabeçotes de motor) e soluções de descarbonização/energia com a MWM.<br>
+                    • Ambiente de alta intensidade operacional (chão de fábrica, fundição, usinagem, 3 turnos de trabalho).
+                </div>
+
+                <h3>💡 Como Conectar Seu Conhecimento com a Vaga da Tupy:</h3>
+                <ul>
+                    <li><strong>Presença Premiada & Programa PRT (Participação nos Resultados):</strong> A Tupy possui programas fortes de incentivo à assiduidade. Mostre que sua análise de absenteísmo e jornada ajuda diretamente a medir o impacto dessas políticas na produtividade e redução de custos com horas extras.</li>
+                    <li><strong>Operação em Turnos & Chão de Fábrica:</strong> Destaque que a maior parte da força de trabalho industrial está no Nível 1 e Nível 2 (operacional). O turnover na fase inicial (primeiros 90 dias) gera alto custo de treinamento (SESI/SENAI) e parada de máquinas.</li>
+                    <li><strong>Segurança do Trabalho & Saúde:</strong> No setor de fundição, a segurança é prioridade zero. O estresse e a jornada excessiva (>9h) afetam diretamente a taxa de acidentes e faltas por atestados médicos. Mostre que People Analytics atua junto com EHS (Saúde e Segurança).</li>
+                </ul>
+
+                <div class="warning-box">
+                    <strong>✨ DICA FINAL PARA BRILHAR OS OLHOS DOS RECRUTADORES:</strong><br>
+                    Demonstre atitude de protagonismo, curiosidade analítica e desejo de construir em equipe. Diga: <em>"Meu objetivo como Analista de People Analytics não é apenas gerar relatórios bonitos, mas ser um parceiro estratégico dos gestores e da diretoria, transformando dados de pessoal em decisões que tornem a operação da Tupy mais eficiente, segura e humana."</em>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+                tabcontent[i].classList.remove("active");
+            }
+            tablinks = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).style.display = "block";
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+    </script>
+</body>
+</html>
