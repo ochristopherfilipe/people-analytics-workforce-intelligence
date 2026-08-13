@@ -9,6 +9,10 @@
   <img src="https://img.shields.io/badge/Dataset-Kaggle%20HR%20Analytics-20BEFF?logo=kaggle&logoColor=white" />
 </p>
 
+![Workforce Intelligence Insights](reports/workforce_intelligence_insight.jpg)
+
+---
+
 ## 📋 Sobre o Projeto
 
 Projeto end-to-end de **People Analytics e Inteligência de Dados de Pessoas**, desenvolvido utilizando o dataset público **HR Analytics Case Study** (disponível no Kaggle). A análise abrange um quadro de **4.410 colaboradores** ao longo do ano de 2015, combinando dados demográficos, pesquisas de clima organizacional, avaliação gerencial de desempenho e mais de **1,1 milhão de registros reais de ponto eletrônico (check-in / check-out)**.
