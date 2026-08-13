@@ -1,0 +1,19 @@
+# Datasets muito grandes (limite do GitHub é 100MB por arquivo)
+data/processed/daily_events.csv
+
+# Pastas de referência temporárias/duplicadas
+arquivos-HR-analytics-case-study/
+alguns-projetos-kaggle/
+
+# Python / Jupyter / OS
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+.DS_Store
+.vscode/
+.idea/
+*.log
+venv/
+env/
+.env
