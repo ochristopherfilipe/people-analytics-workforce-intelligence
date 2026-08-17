@@ -87,6 +87,42 @@ PLOTLY_TEMPLATE = "plotly_dark"
 BG_COLOR = '#0F172A'
 CARD_COLOR = '#1E293B'
 
+# ── Funções de Formatação Numérica Padrão Brasileiro (PT-BR) ─
+def fmt_num(val, decimals=0):
+    """Formata números no padrão brasileiro (1.000 ou 1.000,50)."""
+    if pd.isna(val):
+        return "N/D"
+    if decimals == 0:
+        return f"{int(round(val)):,}".replace(",", ".")
+    formatted = f"{val:,.{decimals}f}"
+    main_part, dec_part = formatted.split(".")
+    main_part = main_part.replace(",", ".")
+    return f"{main_part},{dec_part}"
+
+def fmt_curr(val, currency_symbol='R$', decimals=0):
+    """Formata valores monetários no padrão brasileiro (R$ 1.000 ou US$ 1.000)."""
+    if pd.isna(val):
+        return "N/D"
+    return f"{currency_symbol} {fmt_num(val, decimals)}"
+
+def fmt_pct(val, decimals=1):
+    """Formata percentuais no padrão brasileiro (16,1%)."""
+    if pd.isna(val):
+        return "N/D"
+    return f"{fmt_num(val, decimals)}%"
+
+def apply_plotly_layout(fig, height=380, **kwargs):
+    """Aplica o tema visual e separadores PT-BR nas figuras Plotly."""
+    fig.update_layout(
+        template=PLOTLY_TEMPLATE,
+        paper_bgcolor=BG_COLOR,
+        plot_bgcolor=CARD_COLOR,
+        height=height,
+        separators=',.',  # vírgula para decimal, ponto para milhar
+        **kwargs
+    )
+    return fig
+
 # ── Mapeamento de Dicionário de Dados para PT-BR ──────────────
 DEPT_MAP = {
     'Research & Development': 'Pesquisa & Desenvolvimento (P&D)',
@@ -190,6 +226,47 @@ selected_dept = st.sidebar.selectbox("Departamento", depts)
 levels = ['Todos os Níveis'] + sorted([f"Nível {l}" for l in df['JobLevel'].unique()])
 selected_level = st.sidebar.selectbox("Nível Hierárquico", levels)
 
+# Seletor de Periodicidade e Moeda dos Salários
+st.sidebar.markdown("---")
+st.sidebar.subheader("💱 Remuneração & Câmbio")
+
+period_mode = st.sidebar.radio(
+    "Periodicidade do Salário:",
+    ["📅 Mensal (Padrão)", "📆 Anual"],
+    index=0,
+    help="Os dados brutos do dataset internacional registram a escala salarial anual (~US$ 65.000/ano). No modo Mensal, o valor é dividido por 12 (~US$ 5.419/mês)."
+)
+
+currency_mode = st.sidebar.radio(
+    "Moeda de Exibição:",
+    ["🇧🇷 Real Brasileiro (R$)", "💵 Dólar Americano (US$)"],
+    index=0,
+    help="O dataset internacional original está em Dólar (USD). Ao selecionar Real (R$), o valor é convertido pela cotação do dólar."
+)
+
+if period_mode == "📅 Mensal (Padrão)":
+    time_divisor = 12.0
+    period_text = "Mensal"
+else:
+    time_divisor = 1.0
+    period_text = "Anual"
+
+if currency_mode == "🇧🇷 Real Brasileiro (R$)":
+    usd_rate = st.sidebar.number_input(
+        "Cotação do Dólar (US$ 1 em R$):",
+        min_value=1.0, max_value=20.0, value=5.50, step=0.10,
+        help="Taxa cambial aplicada para converter o salário base de Dólar (USD) para Reais (BRL)."
+    )
+    currency_symbol = "R$"
+    salary_multiplier = usd_rate / time_divisor
+    currency_label = f"Salário {period_text} (R$ — Câmbio R$ {fmt_num(usd_rate, 2)})"
+    currency_col_name = f"Salário {period_text} (R$)"
+else:
+    salary_multiplier = 1.0 / time_divisor
+    currency_symbol = "US$"
+    currency_label = f"Salário {period_text} (US$)"
+    currency_col_name = f"Salário {period_text} (US$)"
+
 # Aplicação dos filtros
 filtered = df.copy()
 if selected_dept != 'Todos os Departamentos':
@@ -198,8 +275,11 @@ if selected_level != 'Todos os Níveis':
     lvl_num = int(selected_level.replace("Nível ", ""))
     filtered = filtered[filtered['JobLevel'] == lvl_num]
 
+# Criação da coluna de salário com a escala e moeda selecionadas
+filtered['DisplayIncome'] = filtered['MonthlyIncome'] * salary_multiplier
+
 st.sidebar.markdown("---")
-st.sidebar.markdown(f"**Exibindo:** `{len(filtered):,}` de `{len(df):,}` colaboradores")
+st.sidebar.markdown(f"**Exibindo:** `{fmt_num(len(filtered))}` de `{fmt_num(len(df))}` colaboradores")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -208,18 +288,18 @@ st.sidebar.markdown(f"**Exibindo:** `{len(filtered):,}` de `{len(df):,}` colabor
 if page == "🏠 Visão Geral":
     st.title("🏠 Visão Geral da Força de Trabalho (Workforce Overview)")
     
-    st.markdown("""
+    st.markdown(f"""
     <div class="explanation-box">
         <strong>📌 O que é esta página?</strong> Apresenta um panorama executivo completo da saúde organizacional da companhia. 
         Combina indicadores demográficos, econômicos, operacionais e de satisfação em tempo real.<br>
-        <strong>💡 Como usar?</strong> Utilize os cartões de KPIs no topo para uma visão rápida dos números macro e navegue pelos gráficos abaixo para entender a estrutura de cargos, remuneração e rotatividade.
+        <strong>💡 Como usar?</strong> Utilize os cartões de KPIs no topo para uma visão rápida dos números macro e navegue pelos gráficos abaixo para entender a estrutura de cargos, remuneração {period_text.lower()} ({currency_symbol}) e rotatividade.
     </div>
     """, unsafe_allow_html=True)
     
     # Cálculo das Métricas
     total = len(filtered)
     attrition = filtered['AttritionFlag'].mean() * 100
-    avg_income = filtered['MonthlyIncome'].mean()
+    avg_income = filtered['DisplayIncome'].mean()
     avg_tenure = filtered['YearsAtCompany'].mean()
     avg_satisfaction = filtered['SatisfactionScore'].mean()
     avg_hours = filtered['AvgDailyWorkHours'].mean()
@@ -232,7 +312,7 @@ if page == "🏠 Visão Geral":
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-label">Headcount Total</div>
-            <div class="metric-value" style="color: {COLORS['primary']}">{total:,}</div>
+            <div class="metric-value" style="color: {COLORS['primary']}">{fmt_num(total)}</div>
             <div class="metric-sub">Colaboradores ativos + desligados</div>
         </div>""", unsafe_allow_html=True)
     with c2:
@@ -240,21 +320,21 @@ if page == "🏠 Visão Geral":
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-label">Taxa de Turnover / Atrito</div>
-            <div class="metric-value" style="color: {color}">{attrition:.1f}%</div>
-            <div class="metric-sub">{filtered['AttritionFlag'].sum():,} desligamentos no período</div>
+            <div class="metric-value" style="color: {color}">{fmt_pct(attrition, 1)}</div>
+            <div class="metric-sub">{fmt_num(filtered['AttritionFlag'].sum())} desligamentos no período</div>
         </div>""", unsafe_allow_html=True)
     with c3:
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-label">Salário Médio Mensal</div>
-            <div class="metric-value" style="color: {COLORS['success']}">R$ {avg_income:,.0f}</div>
-            <div class="metric-sub">Remuneração base média por colaborador</div>
+            <div class="metric-label">Salário Médio {period_text}</div>
+            <div class="metric-value" style="color: {COLORS['success']}">{fmt_curr(avg_income, currency_symbol, 0)}</div>
+            <div class="metric-sub">Remuneração média {period_text.lower()} ({currency_symbol})</div>
         </div>""", unsafe_allow_html=True)
     with c4:
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-label">Satisfação Média</div>
-            <div class="metric-value" style="color: {COLORS['info']}">{avg_satisfaction:.2f} / 4.0</div>
+            <div class="metric-value" style="color: {COLORS['info']}">{fmt_num(avg_satisfaction, 2)} / 4,00</div>
             <div class="metric-sub">Índice composto (clima, cargo, work-life)</div>
         </div>""", unsafe_allow_html=True)
     
@@ -264,14 +344,14 @@ if page == "🏠 Visão Geral":
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-label">Tempo Médio de Casa</div>
-            <div class="metric-value" style="color: {COLORS['secondary']}">{avg_tenure:.1f} anos</div>
+            <div class="metric-value" style="color: {COLORS['secondary']}">{fmt_num(avg_tenure, 1)} anos</div>
             <div class="metric-sub">Permanência média na empresa</div>
         </div>""", unsafe_allow_html=True)
     with c6:
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-label">Jornada Média Diária</div>
-            <div class="metric-value" style="color: {COLORS['accent']}">{avg_hours:.1f} horas</div>
+            <div class="metric-value" style="color: {COLORS['accent']}">{fmt_num(avg_hours, 1)} horas</div>
             <div class="metric-sub">Média registrada via sistema de ponto</div>
         </div>""", unsafe_allow_html=True)
     with c7:
@@ -279,14 +359,14 @@ if page == "🏠 Visão Geral":
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-label">Taxa de Absenteísmo</div>
-            <div class="metric-value" style="color: {abs_color}">{absence_rate:.1f}%</div>
+            <div class="metric-value" style="color: {abs_color}">{fmt_pct(absence_rate, 1)}</div>
             <div class="metric-sub">Percentual de ausências nos dias úteis</div>
         </div>""", unsafe_allow_html=True)
     with c8:
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-label">Avaliação de Desempenho</div>
-            <div class="metric-value" style="color: {COLORS['warning']}">{avg_perf:.2f} / 4.0</div>
+            <div class="metric-value" style="color: {COLORS['warning']}">{fmt_num(avg_perf, 2)} / 4,00</div>
             <div class="metric-sub">Nota média atribuída pela gestão</div>
         </div>""", unsafe_allow_html=True)
     
@@ -305,16 +385,9 @@ if page == "🏠 Visão Geral":
             hole=0.5,
             marker=dict(colors=[COLORS['primary'], COLORS['accent'], COLORS['success']]),
             textinfo='label+percent',
-            hovertemplate="<b>%{label}</b><br>Colaboradores: %{value:,}<br>Proporção: %{percent}<extra></extra>"
+            hovertemplate="<b>%{label}</b><br>Colaboradores: %{value}<br>Proporção: %{percent}<extra></extra>"
         ))
-        fig.update_layout(
-            template=PLOTLY_TEMPLATE,
-            paper_bgcolor=BG_COLOR,
-            plot_bgcolor=CARD_COLOR,
-            height=380,
-            showlegend=True,
-            margin=dict(t=20, b=20, l=20, r=20)
-        )
+        apply_plotly_layout(fig, height=380, showlegend=True, margin=dict(t=20, b=20, l=20, r=20))
         st.plotly_chart(fig, use_container_width=True)
         st.info("💡 **Insight:** Áreas operacionais como Pesquisa & Desenvolvimento e Vendas concentram a maior parte da força de trabalho, sendo cruciais para a retenção global.")
 
@@ -327,18 +400,11 @@ if page == "🏠 Visão Geral":
             x=[f'Nível {l}' for l in level_counts.index],
             y=level_counts.values,
             marker_color=[COLORS['primary'], COLORS['secondary'], COLORS['accent'], COLORS['info'], COLORS['warning']],
-            text=[f"{v:,}" for v in level_counts.values],
+            text=[fmt_num(v) for v in level_counts.values],
             textposition='outside',
-            hovertemplate="<b>%{x}</b><br>Quantidade: %{y:,}<extra></extra>"
+            hovertemplate="<b>%{x}</b><br>Quantidade: %{y}<extra></extra>"
         ))
-        fig.update_layout(
-            template=PLOTLY_TEMPLATE,
-            paper_bgcolor=BG_COLOR,
-            plot_bgcolor=CARD_COLOR,
-            height=380,
-            xaxis_title="Nível Hierárquico", yaxis_title="Quantidade de Colaboradores",
-            margin=dict(t=20, b=20, l=20, r=20)
-        )
+        apply_plotly_layout(fig, height=380, xaxis_title="Nível Hierárquico", yaxis_title="Quantidade de Colaboradores", margin=dict(t=20, b=20, l=20, r=20))
         st.plotly_chart(fig, use_container_width=True)
         st.info("💡 **Insight:** Formato em pirâmide típica de empresas industriais. Os Níveis 1 e 2 contêm a maioria dos trabalhadores e requerem atenção especial na jornada de entrada.")
 
@@ -348,22 +414,16 @@ if page == "🏠 Visão Geral":
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("3. Distribuição Salarial por Nível e Status de Retenção")
-        st.caption("🔍 **O que mostra:** A amplitude e a mediana salarial mensal (R$) por nível hierárquico, comparando quem continua na empresa (Ativo) vs. quem se desligou (Desligado).")
+        st.subheader(f"3. Distribuição Salarial {period_text} ({currency_symbol}) por Nível e Retenção")
+        st.caption(f"🔍 **O que mostra:** A amplitude e a mediana salarial {period_text.lower()} ({currency_symbol}) por nível hierárquico, comparando quem continua na empresa (Ativo) vs. quem se desligou (Desligado).")
         
         fig = px.box(
-            filtered, x='JobLevel', y='MonthlyIncome', color='Attrition_BR',
+            filtered, x='JobLevel', y='DisplayIncome', color='Attrition_BR',
             category_orders={'JobLevel': sorted(filtered['JobLevel'].unique())},
             color_discrete_map={'Desligado': COLORS['danger'], 'Ativo': COLORS['success']},
-            labels={'MonthlyIncome': 'Salário Mensal (R$)', 'JobLevel': 'Nível Hierárquico', 'Attrition_BR': 'Status'}
+            labels={'DisplayIncome': currency_label, 'JobLevel': 'Nível Hierárquico', 'Attrition_BR': 'Status'}
         )
-        fig.update_layout(
-            template=PLOTLY_TEMPLATE,
-            paper_bgcolor=BG_COLOR,
-            plot_bgcolor=CARD_COLOR,
-            height=400,
-            xaxis_title="Nível Hierárquico", yaxis_title="Salário Mensal (R$)"
-        )
+        apply_plotly_layout(fig, height=400, xaxis_title="Nível Hierárquico", yaxis_title=currency_label)
         st.plotly_chart(fig, use_container_width=True)
         st.info("💡 **Insight:** Nos níveis iniciais (Nível 1 e 2), a mediana salarial dos colaboradores desligados costuma ser inferior à dos que permanecem, sinalizando sensibilidade à remuneração.")
 
@@ -379,20 +439,14 @@ if page == "🏠 Visão Geral":
         fig.add_trace(go.Bar(
             x=age_group_attr['AgeGroup'], y=age_group_attr['Rate'],
             marker_color=COLORS['primary'],
-            text=[f'{r:.1f}%' for r in age_group_attr['Rate']],
+            text=[fmt_pct(r, 1) for r in age_group_attr['Rate']],
             textposition='outside',
             hovertemplate="<b>Faixa: %{x} anos</b><br>Taxa de Turnover: %{y:.1f}%<br>Total no Grupo: %{text}<extra></extra>"
         ))
         fig.add_hline(y=filtered['AttritionFlag'].mean() * 100, 
                      line_dash="dash", line_color=COLORS['warning'],
-                     annotation_text=f"Média Geral ({filtered['AttritionFlag'].mean()*100:.1f}%)")
-        fig.update_layout(
-            template=PLOTLY_TEMPLATE,
-            paper_bgcolor=BG_COLOR,
-            plot_bgcolor=CARD_COLOR,
-            height=400,
-            xaxis_title="Faixa Etária (anos)", yaxis_title="Taxa de Turnover (%)"
-        )
+                     annotation_text=f"Média Geral ({fmt_pct(filtered['AttritionFlag'].mean()*100, 1)})")
+        apply_plotly_layout(fig, height=400, xaxis_title="Faixa Etária (anos)", yaxis_title="Taxa de Turnover (%)")
         st.plotly_chart(fig, use_container_width=True)
         st.info("💡 **Insight:** Profissionais jovens (18 a 29 anos) costumam apresentar rotatividade mais alta do que trabalhadores de 40+ anos, indicando a necessidade de planos de carreira iniciais acelerados.")
 
@@ -443,20 +497,13 @@ elif page == "📉 Análise de Turnover":
         y=seg_data[selected_dim], x=seg_data['Rate'],
         orientation='h',
         marker_color=colors,
-        text=[f'{r:.1f}% (n={c:,})' for r, c in zip(seg_data['Rate'], seg_data['Count'])],
+        text=[f"{fmt_pct(r, 1)} (n={fmt_num(c)})" for r, c in zip(seg_data['Rate'], seg_data['Count'])],
         textposition='outside',
         hovertemplate="<b>%{y}</b><br>Taxa de Turnover: %{x:.1f}%<br>Total no Grupo: %{text}<extra></extra>"
     ))
     fig.add_vline(x=overall_rate, line_dash="dash", line_color='#94A3B8',
-                 annotation_text=f"Média da Empresa: {overall_rate:.1f}%")
-    fig.update_layout(
-        template=PLOTLY_TEMPLATE,
-        paper_bgcolor=BG_COLOR,
-        plot_bgcolor=CARD_COLOR,
-        height=max(420, len(seg_data) * 45),
-        xaxis_title="Taxa de Turnover (%)", yaxis_title="",
-        margin=dict(t=30, b=20, l=20, r=20)
-    )
+                 annotation_text=f"Média da Empresa: {fmt_pct(overall_rate, 1)}")
+    apply_plotly_layout(fig, height=max(420, len(seg_data) * 45), xaxis_title="Taxa de Turnover (%)", yaxis_title="", margin=dict(t=30, b=20, l=20, r=20))
     st.plotly_chart(fig, use_container_width=True)
     
     st.info(f"💡 **Insight de Negócio ({segment_options[selected_dim]}):** Barras vermelhas indicam áreas com rotatividade superior a 20%, exigindo intervenção prioritária. Ex: Funcionários com **viagens frequentes** ou **solteiros** historicamente apresentam taxas de saída bem mais elevadas.")
@@ -486,20 +533,12 @@ elif page == "📉 Análise de Turnover":
             fig = go.Figure(go.Bar(
                 x=rates['Label'], y=rates['Rate'],
                 marker_color=[COLORS['danger'], COLORS['warning'], COLORS['info'], COLORS['success']],
-                text=[f'{r:.1f}%' for r in rates['Rate']],
+                text=[fmt_pct(r, 1) for r in rates['Rate']],
                 textposition='outside',
                 hovertemplate="<b>Nota: %{x}</b><br>Taxa de Saída: %{y:.1f}%<extra></extra>"
             ))
             fig.add_hline(y=overall_rate, line_dash="dash", line_color='#94A3B8')
-            fig.update_layout(
-                title=f"{title_br}",
-                template=PLOTLY_TEMPLATE,
-                paper_bgcolor=BG_COLOR,
-                plot_bgcolor=CARD_COLOR,
-                height=320,
-                yaxis_title="Taxa de Turnover (%)",
-                xaxis_title="Nota de Pesquisa"
-            )
+            apply_plotly_layout(fig, height=320, title=f"{title_br}", yaxis_title="Taxa de Turnover (%)", xaxis_title="Nota de Pesquisa")
             st.plotly_chart(fig, use_container_width=True)
             
     st.info("💡 **Conclusão:** Existe uma relação direta e inversamente proporcional entre a satisfação declarada e o turnover. Colaboradores com nota 1 (Baixa) chegam a ter o triplo de desligamentos em comparação aos de nota 4 (Muito Alta).")
@@ -526,7 +565,7 @@ elif page == "⏱️ Engajamento & Ponto":
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-label">Jornada Média Diária</div>
-            <div class="metric-value" style="color: {COLORS['primary']}">{avg_h:.2f} hrs</div>
+            <div class="metric-value" style="color: {COLORS['primary']}">{fmt_num(avg_h, 2)} hrs</div>
             <div class="metric-sub">Média real registrada no crachá/ponto</div>
         </div>""", unsafe_allow_html=True)
     with col2:
@@ -534,7 +573,7 @@ elif page == "⏱️ Engajamento & Ponto":
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-label">Taxa Média de Faltas/Absenteísmo</div>
-            <div class="metric-value" style="color: {COLORS['warning']}">{abs_r:.1f}%</div>
+            <div class="metric-value" style="color: {COLORS['warning']}">{fmt_pct(abs_r, 1)}</div>
             <div class="metric-sub">Percentual de dias de ausência no ano</div>
         </div>""", unsafe_allow_html=True)
     with col3:
@@ -542,7 +581,7 @@ elif page == "⏱️ Engajamento & Ponto":
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-label">Taxa de Dias Longos (>9h)</div>
-            <div class="metric-value" style="color: {COLORS['accent']}">{long_d:.1f}%</div>
+            <div class="metric-value" style="color: {COLORS['accent']}">{fmt_pct(long_d, 1)}</div>
             <div class="metric-sub">Jornadas com mais de 9 horas de trabalho</div>
         </div>""", unsafe_allow_html=True)
     
@@ -560,11 +599,7 @@ elif page == "⏱️ Engajamento & Ponto":
             barmode='overlay', opacity=0.7,
             labels={'AvgDailyWorkHours': 'Horas Diárias Trabalhadas', 'Attrition_BR': 'Status'}
         )
-        fig.update_layout(
-            template=PLOTLY_TEMPLATE,
-            paper_bgcolor=BG_COLOR, plot_bgcolor=CARD_COLOR, height=380,
-            xaxis_title="Jornada Média Diária (horas)", yaxis_title="Frequência"
-        )
+        apply_plotly_layout(fig, height=380, xaxis_title="Jornada Média Diária (horas)", yaxis_title="Frequência")
         st.plotly_chart(fig, use_container_width=True)
         st.info("💡 **Insight:** Tanto jornadas excessivas (>9h, risco de burnout) quanto jornadas muito reduzidas (<7h, desengajamento) concentram uma maior proporção de desligamentos.")
 
@@ -578,36 +613,29 @@ elif page == "⏱️ Engajamento & Ponto":
             barmode='overlay', opacity=0.7,
             labels={'AbsenceRate': 'Taxa de Absenteísmo (%)', 'Attrition_BR': 'Status'}
         )
-        fig.update_layout(
-            template=PLOTLY_TEMPLATE,
-            paper_bgcolor=BG_COLOR, plot_bgcolor=CARD_COLOR, height=380,
-            xaxis_title="Taxa de Absenteísmo (% de faltas)", yaxis_title="Frequência"
-        )
+        apply_plotly_layout(fig, height=380, xaxis_title="Taxa de Absenteísmo (% de faltas)", yaxis_title="Frequência")
         st.plotly_chart(fig, use_container_width=True)
         st.info("💡 **Insight:** Faltas recorrentes acima de 8% nos dias úteis funcionam como um forte indicador de turnover voluntário iminente.")
 
     st.markdown("---")
 
     # Gráfico de Dispersão: Horas vs Satisfação
-    st.subheader("3. Matriz de Risco: Jornada de Trabalho vs. Satisfação Declarada")
-    st.caption("🔍 **O que mostra:** Cruzamento individual de cada colaborador entre a Jornada Diária (eixo X), Nota de Satisfação (eixo Y) e Status de Desligamento (cores).")
+    st.subheader(f"3. Matriz de Risco: Jornada de Trabalho vs. Satisfação Declarada ({currency_symbol})")
+    st.caption(f"🔍 **O que mostra:** Cruzamento individual de cada colaborador entre a Jornada Diária (eixo X), Nota de Satisfação (eixo Y), Salário {period_text.lower()} ({currency_symbol}, tamanho das bolhas) e Status de Desligamento (cores).")
     
     fig = px.scatter(
         filtered, x='AvgDailyWorkHours', y='SatisfactionScore', 
-        color='Attrition_BR', size='MonthlyIncome',
+        color='Attrition_BR', size='DisplayIncome',
         color_discrete_map={'Desligado': COLORS['danger'], 'Ativo': COLORS['success']},
         opacity=0.55,
         labels={
             'AvgDailyWorkHours': 'Jornada Média Diária (Horas)',
             'SatisfactionScore': 'Índice de Satisfação (1.0 a 4.0)',
-            'MonthlyIncome': 'Salário Mensal (R$)',
+            'DisplayIncome': currency_label,
             'Attrition_BR': 'Status'
         }
     )
-    fig.update_layout(
-        template=PLOTLY_TEMPLATE,
-        paper_bgcolor=BG_COLOR, plot_bgcolor=CARD_COLOR, height=480
-    )
+    apply_plotly_layout(fig, height=480)
     st.plotly_chart(fig, use_container_width=True)
     st.info("💡 **Quadrante Crítico:** Canto inferior direito (Jornada longa > 8.5h + Satisfação baixa < 2.0). Colaboradores nesta zona apresentam a maior taxa de desligamento por sobrecarga e insatisfação simultâneas.")
 
@@ -630,15 +658,11 @@ elif page == "⏱️ Engajamento & Ponto":
         fig = go.Figure(go.Bar(
             x=trend_data['Tendencia'], y=trend_data['Rate'],
             marker_color=[color_map.get(t, COLORS['primary']) for t in trend_data['Tendencia']],
-            text=[f'{r:.1f}% (n={c:,})' for r, c in zip(trend_data['Rate'], trend_data['Count'])],
+            text=[f"{fmt_pct(r, 1)} (n={fmt_num(c)})" for r, c in zip(trend_data['Rate'], trend_data['Count'])],
             textposition='outside',
             hovertemplate="<b>%{x}</b><br>Taxa de Turnover: %{y:.1f}%<extra></extra>"
         ))
-        fig.update_layout(
-            template=PLOTLY_TEMPLATE,
-            paper_bgcolor=BG_COLOR, plot_bgcolor=CARD_COLOR, height=380,
-            yaxis_title="Taxa de Turnover (%)", xaxis_title="Evolução Mensal da Jornada"
-        )
+        apply_plotly_layout(fig, height=380, yaxis_title="Taxa de Turnover (%)", xaxis_title="Evolução Mensal da Jornada")
         st.plotly_chart(fig, use_container_width=True)
         st.info("💡 **Descoberta Comportamental:** Colaboradores com tendência **Declinante** (que passam a cumprir menos horas no final do ano) apresentam a maior taxa de saída. Trata-se do *quiet quitting* ou desengajamento silencioso detectável no ponto.")
 
@@ -688,22 +712,22 @@ elif page == "🎯 Monitor Preditivo de Risco":
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-label">🔴 Colaboradores em Alto Risco</div>
-            <div class="metric-value" style="color: {COLORS['danger']}">{high_risk:,}</div>
-            <div class="metric-sub">{high_risk/len(active)*100:.1f}% dos ativos (Probabilidade > 60%)</div>
+            <div class="metric-value" style="color: {COLORS['danger']}">{fmt_num(high_risk)}</div>
+            <div class="metric-sub">{fmt_pct(high_risk/len(active)*100, 1)} dos ativos (Probabilidade > 60%)</div>
         </div>""", unsafe_allow_html=True)
     with c2:
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-label">🟡 Colaboradores em Médio Risco</div>
-            <div class="metric-value" style="color: {COLORS['warning']}">{medium_risk:,}</div>
-            <div class="metric-sub">{medium_risk/len(active)*100:.1f}% dos ativos (Probabilidade 30%-60%)</div>
+            <div class="metric-value" style="color: {COLORS['warning']}">{fmt_num(medium_risk)}</div>
+            <div class="metric-sub">{fmt_pct(medium_risk/len(active)*100, 1)} dos ativos (Probabilidade 30%-60%)</div>
         </div>""", unsafe_allow_html=True)
     with c3:
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-label">🟢 Colaboradores em Baixo Risco</div>
-            <div class="metric-value" style="color: {COLORS['success']}">{low_risk:,}</div>
-            <div class="metric-sub">{low_risk/len(active)*100:.1f}% dos ativos (Probabilidade < 30%)</div>
+            <div class="metric-value" style="color: {COLORS['success']}">{fmt_num(low_risk)}</div>
+            <div class="metric-sub">{fmt_pct(low_risk/len(active)*100, 1)} dos ativos (Probabilidade < 30%)</div>
         </div>""", unsafe_allow_html=True)
     
     st.markdown("---")
@@ -722,11 +746,7 @@ elif page == "🎯 Monitor Preditivo de Risco":
         )
         fig.add_vline(x=0.3, line_dash="dash", line_color=COLORS['success'], annotation_text="Corte Baixo/Médio (30%)")
         fig.add_vline(x=0.6, line_dash="dash", line_color=COLORS['danger'], annotation_text="Corte Médio/Alto (60%)")
-        fig.update_layout(
-            template=PLOTLY_TEMPLATE,
-            paper_bgcolor=BG_COLOR, plot_bgcolor=CARD_COLOR, height=380,
-            xaxis_title="Score de Risco (Probabilidade de Desligamento)", yaxis_title="Quantidade de Ativos"
-        )
+        apply_plotly_layout(fig, height=380, xaxis_title="Score de Risco (Probabilidade de Desligamento)", yaxis_title="Quantidade de Ativos")
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
@@ -739,38 +759,37 @@ elif page == "🎯 Monitor Preditivo de Risco":
             orientation='h',
             marker_color=[COLORS['danger'] if v > 0.4 else COLORS['warning'] if v > 0.3 else COLORS['success']
                          for v in risk_dept.values],
-            text=[f'{v:.1%}' for v in risk_dept.values],
+            text=[fmt_pct(v * 100, 1) for v in risk_dept.values],
             textposition='outside',
-            hovertemplate="<b>%{y}</b><br>Risco Médio: %{x:.1%}<extra></extra>"
+            hovertemplate="<b>%{y}</b><br>Risco Médio: %{text}<extra></extra>"
         ))
-        fig.update_layout(
-            template=PLOTLY_TEMPLATE,
-            paper_bgcolor=BG_COLOR, plot_bgcolor=CARD_COLOR, height=380,
-            xaxis_title="Score de Risco Médio Preditivo", yaxis_title=""
-        )
+        apply_plotly_layout(fig, height=380, xaxis_title="Score de Risco Médio Preditivo", yaxis_title="")
         st.plotly_chart(fig, use_container_width=True)
     
     st.markdown("---")
     
     # Tabela Nominal de Risco
-    st.subheader("🔴 Lista dos 20 Colaboradores Ativos com Maior Risco de Saída")
-    st.caption("🔍 **Como usar esta tabela:** Esta lista operacional deve ser utilizada pelos Business Partners (BPs) do RH para agendar reuniões de retenção, revisar pacotes salariais ou oferecer novas oportunidades internas.")
+    st.subheader(f"🔴 Lista dos 20 Colaboradores Ativos com Maior Risco de Saída ({currency_symbol})")
+    st.caption(f"🔍 **Como usar esta tabela:** Esta lista operacional deve ser utilizada pelos Business Partners (BPs) do RH para agendar reuniões de retenção, revisar pacotes salariais ({currency_symbol}) ou oferecer novas oportunidades internas.")
     
+    active['DisplayIncome'] = active['MonthlyIncome'] * salary_multiplier
     top_risk = active.nlargest(20, 'RiskScore')[[
-        'EmployeeID', 'Department_BR', 'JobRole_BR', 'JobLevel', 'MonthlyIncome',
+        'EmployeeID', 'Department_BR', 'JobRole_BR', 'JobLevel', 'DisplayIncome',
         'YearsAtCompany', 'YearsSinceLastPromotion', 'SatisfactionScore',
         'RiskScore', 'RiskLevel_BR'
     ]].reset_index(drop=True)
     
     top_risk.columns = [
-        'ID Funcionário', 'Departamento', 'Cargo', 'Nível', 'Salário Mensal (R$)',
-        'Anos de Empresa', 'Anos sem Promoção', 'Índice Satisfação',
+        'ID Funcionário', 'Departamento', 'Cargo', 'Nível', currency_col_name,
+        'Tempo de Casa', 'Anos sem Promoção', 'Índice Satisfação',
         'Probabilidade de Saída', 'Classificação de Risco'
     ]
     
-    top_risk['Salário Mensal (R$)'] = top_risk['Salário Mensal (R$)'].apply(lambda x: f"R$ {x:,.0f}")
-    top_risk['Probabilidade de Saída'] = top_risk['Probabilidade de Saída'].apply(lambda x: f"{x:.1%}")
-    top_risk['Índice Satisfação'] = top_risk['Índice Satisfação'].apply(lambda x: f"{x:.2f} / 4.0")
+    top_risk[currency_col_name] = top_risk[currency_col_name].apply(lambda x: fmt_curr(x, currency_symbol, 0))
+    top_risk['Tempo de Casa'] = top_risk['Tempo de Casa'].apply(lambda x: f"{fmt_num(x, 0)} anos")
+    top_risk['Anos sem Promoção'] = top_risk['Anos sem Promoção'].apply(lambda x: f"{fmt_num(x, 0)} anos")
+    top_risk['Probabilidade de Saída'] = top_risk['Probabilidade de Saída'].apply(lambda x: fmt_pct(x * 100, 1))
+    top_risk['Índice Satisfação'] = top_risk['Índice Satisfação'].apply(lambda x: f"{fmt_num(x, 2)} / 4,00")
     
     st.dataframe(
         top_risk.style.applymap(
